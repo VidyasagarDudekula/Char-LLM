@@ -33,11 +33,11 @@ val_data = tokenized_base_data[limit:]
 
 ######
 VOCAB_SIZE = len(charecters)
-BLOCK_SIZE = 64
-BATCH_SIZE = 32
-EMBED_DIM = 128
+BLOCK_SIZE = 128
+BATCH_SIZE = 64
+EMBED_DIM = 256
 NUM_HEAD = 2
-NUM_BLOCKS = 2
+NUM_BLOCKS = 4
 head_size = EMBED_DIM//NUM_HEAD
 DROPOUT = 0.2
 
@@ -164,49 +164,50 @@ def get_batch(split="train"):
     x, y = x.to(device), y.to(device)
     return x, y
 
-model = GPTCharecterModel()
-model = model.to(device = device)
-optimizer = optim.AdamW(model.parameters(), lr=1e-3)
+if __name__ == "__main__":
+    model = GPTCharecterModel()
+    model = model.to(device = device)
+    optimizer = optim.AdamW(model.parameters(), lr=1e-3)
 
-stepi = []
-lossi = []
+    stepi = []
+    lossi = []
 
-for step in range(20000):
-    xb, yb = get_batch(split="train")
-    model.zero_grad(set_to_none=True)
-    logits, loss = model(xb, yb)
-    if step % 100 == 0:
-        print(f"Step {step}: Loss {loss.item():.4f}")
-        stepi.append(step)
-        lossi.append(loss.item())
-    loss.backward()
-    optimizer.step()
-print(f"Final Training Loss:- {loss.item()}")
-
-
-plt.plot(stepi, lossi)
-plt.title("Training Loss")
-plt.xlabel("Step (x100)")
-plt.ylabel("Loss")
-plt.savefig('loss_curve.png')
-print("Loss curve saved to loss_curve.png")
+    for step in range(20000):
+        xb, yb = get_batch(split="train")
+        model.zero_grad(set_to_none=True)
+        logits, loss = model(xb, yb)
+        if step % 50 == 0:
+            print(f"Step {step}: Loss {loss.item():.4f}")
+            stepi.append(step)
+            lossi.append(loss.item())
+        loss.backward()
+        optimizer.step()
+    print(f"Final Training Loss:- {loss.item()}")
 
 
-torch.save(model.state_dict(), "char-model.pth")
-print("Model weights saved to char-model.pth")
+    plt.plot(stepi, lossi)
+    plt.title("Training Loss")
+    plt.xlabel("Step (x50)")
+    plt.ylabel("Loss")
+    plt.savefig('loss_curve.png')
+    print("Loss curve saved to loss_curve.png")
 
 
-print("\nGenerating text...")
-context = torch.zeros((1, 1), dtype=torch.long, device=device)
-context[0,0] = stoi['T'] if 'T' in stoi else 0
+    torch.save(model.state_dict(), "char-model.pth")
+    print("Model weights saved to char-model.pth")
 
-generated_ids = model.generate(context, max_new_tokens=1000)[0].tolist()
-generated_text = decode(generated_ids)
 
-output_filename = "more_output.txt"
-with open(output_filename, "w", encoding='utf-8') as f:
-    f.write(generated_text)
+    print("\nGenerating text...")
+    context = torch.zeros((1, 1), dtype=torch.long, device=device)
+    context[0,0] = stoi['T'] if 'T' in stoi else 0
 
-print(f"Generated text saved to {output_filename}")
-print("\nSample preview:")
-print(generated_text[:200])
+    generated_ids = model.generate(context, max_length=1000)[0].tolist()
+    generated_text = decode(generated_ids)
+
+    output_filename = "more_output.txt"
+    with open(output_filename, "w", encoding='utf-8') as f:
+        f.write(generated_text)
+
+    print(f"Generated text saved to {output_filename}")
+    print("\nSample preview:")
+    print(generated_text[:200])
